@@ -1,22 +1,29 @@
-import React, { useContext } from 'react';
-import { SafeAreaView, StyleSheet, View, Text, Button } from 'react-native';
+import React, { useContext, useEffect } from 'react';
+import { SafeAreaView, StyleSheet, Text, Button } from 'react-native';
 import Context from './Context';
 
 const HomeLogged = ({navigation}) => {
-    const { user, username, handleSignOut, isVerified } = useContext(Context);
+  const { getUser, user, username, handleSignOut, isVerified } = useContext(Context);
+
+  useEffect(() => {
+        if (user) {
+            getUser();
+        }
+    }, []);
 
   return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>WELCOME, {username ? username : user.email}!</Text>
+        <Text style={styles.title}>WELCOME, {username !== '' ? username : user.email}!</Text>
         <Text style={styles.subTitle}>You are signed in!</Text>
         <Text>
             {
                 (!isVerified) ?
-                    <Text style={styles.notVerified}>Verify your email to access profile</Text>
+                    <Text style={styles.notVerified}>Please verify your email</Text>
                     :
-                    <Text style={styles.goProfile} onPress={() => navigation.navigate('Profile')}>Go to your profile</Text>
+                    null
             }
         </Text>
+        <Text style={styles.goProfile} onPress={() => navigation.navigate('Profile')}>Go to your profile</Text>
         <Button title="Sign out" onPress={handleSignOut} />
       </SafeAreaView>
   );
@@ -25,11 +32,11 @@ const HomeLogged = ({navigation}) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
   },
   title: {
     fontSize: 30,
+    margin: 40,
   },
   subTitle: {
     fontSize: 20,

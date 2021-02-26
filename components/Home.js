@@ -1,12 +1,12 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, View, Text } from 'react-native';
+import { SafeAreaView, StyleSheet, Text } from 'react-native';
 
 const Home = ({navigation}) => {
   return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>WELCOME!</Text>
         <Text style={styles.subTitle}>Please  
-            <Text style={styles.link} onPress={() => navigation.navigate('SignIn')}> sign in </Text>
+            <Text style={styles.link} onPress={() => navigation.navigate('Sign In')}> sign in </Text>
         or 
             <Text style={styles.link} onPress={() => navigation.navigate('Register')}> register </Text>
         to proceed</Text>

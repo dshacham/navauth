@@ -1,18 +1,30 @@
-import React, { useState, useEffect, useContext } from 'react';
+import React, { useContext } from 'react';
 import { SafeAreaView, StyleSheet, View, Text, TextInput, Button } from 'react-native';
 import Context from './Context';
 
 const SignIn = ({ navigation }) => {
 const { handleSignIn, setEmail, setPassword } = useContext(Context);
+
   return (
       <SafeAreaView style={styles.container}>
-        <Text style={styles.title}>SignIn</Text>
+        <Text style={styles.title}>Sign In</Text>
         <View>
-            <TextInput style={styles.txtInput} placeholder="Email..." onChangeText={text => setEmail(text)} />
-            <TextInput style={styles.txtInput} placeholder="Password..." onChangeText={text => setPassword(text)} />
+            <TextInput 
+              style={styles.txtInput} 
+              placeholder="Email..." 
+              onChangeText={text => setEmail(text)}
+            />
+            <TextInput 
+              style={styles.txtInput} 
+              placeholder="Password..." 
+              secureTextEntry={true}
+              onChangeText={text => setPassword(text)}
+            />
             <Button title="Sign In" onPress={handleSignIn} />
         </View>
-        <Text>Don't have an account? <Text style={styles.link} onPress={() => navigation.navigate('Register')}>Register</Text></Text>
+        <Text>Don't have an account? 
+          <Text style={styles.link} onPress={() => navigation.navigate('Register')}> Register</Text>
+        </Text>
       </SafeAreaView>
   );
 };

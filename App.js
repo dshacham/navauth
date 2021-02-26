@@ -1,56 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { SafeAreaView, StyleSheet, View, Text, Alert } from 'react-native';
+import { StyleSheet, Alert } from 'react-native';
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import 'react-native-gesture-handler';
 import { NavigationContainer } from '@react-navigation/native';
-import { createDrawerNavigator } from '@react-navigation/drawer'
-import { createStackNavigator } from '@react-navigation/stack';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import Context from './components/Context';
-import Home from './components/Home';
-import HomeLogged from './components/HomeLogged';
 import About from './components/About';
 import Register from './components/Register';
 import SignIn from './components/SignIn';
 import Profile from './components/Profile';
+import { createTabsNotLogged, createTabsLogged } from './components/Navigation';
 
-const Stack = createStackNavigator();
 const Drawer = createDrawerNavigator();
 
+// Database:
 const usersCollection = firestore().collection('users');
 
+// RegEx for password rules:
+const passValidator = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).{6,20}$/;
+
 const App = () => {
-  // Set an initializing state whilst Firebase connects
+  // Set an initializing state whilst Firebase connects:
   const [initializing, setInitializing] = useState(true);
   const [user, setUser] = useState('');
+  // Fetch data from firestore database:
   const [userData, setUserData] = useState('');
+  // Data for registration and/or updating info:
   const [email, setEmail] = useState('');
   const [confirmEmail, setConfirmEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
   const [username, setUsername] = useState('');
   const [name, setName] = useState('');
   const [country, setCountry] = useState('');
+  // Check if email is verified to show "verify email" msg or not:
+  const [isVerified, setIsVerified] = useState(false);
+  // First time logged in redirects to creating profile:
   const [newUser, setNewUser] = useState(false);
+  // When editing data, show editing mode:
   const [edit, setEdit] = useState(false);
   const [editPassword, setEditPassword] = useState(false);
-
-  // create stack of screens for navigation
-  const createHomeStack = () => {
-        return (
-          <Stack.Navigator initialRouteName={!user ? "Home" : newUser ? "Profile" : "Home "}>
-            <Stack.Screen name={!user ? "Home" : newUser ? "Profile" : "HomeL "} component={!user ? Home : newUser ? Profile : HomeLogged} />
-            <Stack.Screen name="Register" component={Register} />
-            <Stack.Screen name="SignIn" component={SignIn} />
-            <Stack.Screen name="About" component={About} />
-            {/* <Stack.Screen name="Profile" component={Profile} /> */}
-          </Stack.Navigator>
-        )
-      };
       
-  // Handle user state changes
+  // Handle user state changes:
   const onAuthStateChanged = (user) => {
     setUser(user);
     if (initializing) setInitializing(false);
@@ -64,10 +57,11 @@ const App = () => {
 
   if (initializing) return null;
 
+  // Fetch user data from database:
   const getUser = async () => {
     if (user) {
       const getCurrentUser = await usersCollection.doc(user.uid).get();
-      setUserData(getCurrentUser);
+      setUserData(getCurrentUser._data);
       setUsername(getCurrentUser._data.username);
       setName(getCurrentUser._data.name);
       setCountry(getCurrentUser._data.country);
@@ -75,7 +69,8 @@ const App = () => {
   };
 
   const handleRegister = () => {
-    if ((email === confirmEmail) && (password === confirmPassword)) {
+    if (
+      (email === confirmEmail) && (password === confirmPassword) && (password.match(passValidator))) {
       auth()
       .createUserWithEmailAndPassword(email, password)
       .then((currentUser) => {
@@ -95,7 +90,7 @@ const App = () => {
       });
       setNewUser(true);
     } else {
-      Alert.alert('Email or password does not match');
+      Alert.alert('Check that Email and password match and that password is legit');
     };
   };
 
@@ -104,10 +99,10 @@ const App = () => {
     .signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
     // Signed in
-    if (userCredential.user.emailVerified) {
-      setIsVerified(true);
-      setUser(userCredential.user);
-    };
+      if (userCredential.user.emailVerified) {
+        setIsVerified(true);
+        setUser(userCredential.user);
+      };
     })
     .catch((error) => {
       if (error.code === 'auth/wrong-password') {
@@ -122,13 +117,12 @@ const App = () => {
     });
   };
 
-  // console.log(user, isVerified)
-
   const handleSignOut = () => {
     auth()
     .signOut()
     .then(() => {
       setUser('');
+      setUserData('');
       console.log('User signed out!');
     });
   };
@@ -136,15 +130,15 @@ const App = () => {
   const handleNewUser = async () => {
     if (username !== '') {
       usersCollection.doc(user.uid).set({
-      username,
-      name,
-      country,
+        username,
+        name,
+        country,
       })
       .then(() => {
-          console.log("Document successfully written!");
+          console.log('Document successfully written!');
       })
       .catch((error) => {
-          console.error("Error writing document: ", error);
+          console.error('Error writing document: ', error);
       });
   
       setEdit(false);
@@ -154,18 +148,19 @@ const App = () => {
     };
   };
 
+  // Edit profile data:
   const handleEdit = async () => {
     if (username !== '') {
       usersCollection.doc(user.uid).update({
-      username,
-      name,
-      country,
+        username,
+        name,
+        country,
       })
       .then(() => {
-          console.log("Document successfully written!");
+          console.log('Document successfully written!');
       })
       .catch((error) => {
-          console.error("Error writing document: ", error);
+          console.error('Error writing document: ', error);
       });
   
       setEdit(false);
@@ -177,39 +172,55 @@ const App = () => {
 
   const handleChangePassword = (password, newPassword) => {
     const credentials = auth.EmailAuthProvider.credential(user.email, password);
-
-    user.reauthenticateWithCredential(credentials)
-    .then(() => {
-      user.updatePassword(newPassword)
+    if (newPassword.match(passValidator)) {
+      user.reauthenticateWithCredential(credentials)
       .then(() => {
-        console.log("Password updated!");
-        Alert.alert("Password updated!");
-      }).catch((error) => { console.log(error); });
-    }).catch((error) => { console.log(error); });
+        user.updatePassword(newPassword)
+        .then(() => {
+          console.log('Password updated!');
+          Alert.alert('Password updated!');
+          setEditPassword(false);
+        }).catch((error) => { 
+          console.log("er 1: ", error); 
+          Alert.alert('Old password incorrect');
+        });
+      }).catch((error) => { 
+        console.log("er 2: ", error); 
+        Alert.alert('Old password incorrect');
+      });
+    } else {
+      Alert.alert('Check that new password and confirmation are legit');
+    };
   };
 
-
-
+  // Show this if user not logged in:
   if (!user) {
     return (
-      <Context.Provider value={{ handleRegister, handleSignIn, setEmail, setPassword, setConfirmEmail, setConfirmPassword, user }}>
+      <Context.Provider value={{ 
+        handleRegister, handleSignIn, setEmail, setPassword, setConfirmEmail, setConfirmPassword, user 
+      }}>
         <NavigationContainer>
           <Drawer.Navigator>
-            <Drawer.Screen name="Home" children={createHomeStack} />
+            <Drawer.Screen name="Main" children={createTabsNotLogged} />
             <Drawer.Screen name="About" component={About} />
             <Drawer.Screen name="Register" component={Register} />
-            <Drawer.Screen name="SignIn" component={SignIn} />
+            <Drawer.Screen name="Sign In" component={SignIn} />
           </Drawer.Navigator>
         </NavigationContainer>
       </Context.Provider>
     );
   };
 
+  // Show this if user is logged in:
   return (
-    <Context.Provider value={{ getUser, handleRegister, handleSignOut, handleEdit, handleNewUser, handleChangePassword, setEdit, setEmail, setPassword, setUsername, setName, setCountry, setEditPassword, setConfirmPassword, setNewPassword, userData, editPassword, edit, newUser, isVerified, user, username, name, country, password, newPassword  }}>
+    <Context.Provider value={{ 
+      getUser, handleRegister, handleSignOut, handleEdit, handleNewUser, handleChangePassword, 
+      setEdit, setEmail, setPassword, setUsername, setName, setCountry, setEditPassword, setConfirmPassword, setNewPassword, 
+      userData, editPassword, edit, newUser, isVerified, user, username, name, country, password, newPassword  
+    }}>
         <NavigationContainer>
           <Drawer.Navigator>
-            <Drawer.Screen name="Home " children={createHomeStack} />
+            <Drawer.Screen name="Home" children={() => createTabsLogged(newUser)} />
             <Drawer.Screen name="About" component={About} />
             <Drawer.Screen name="Profile" component={Profile} />
           </Drawer.Navigator>
